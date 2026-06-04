@@ -1,0 +1,4 @@
+.env
+.DS_Store
+hotel-guest-service-system-be/
+hotel-guest-service-frontend/

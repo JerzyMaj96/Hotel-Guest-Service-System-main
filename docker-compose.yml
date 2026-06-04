@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hotel-main-db-container
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: hotel_guest_service_system
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d hotel_guest_service_system"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: jerzyk437/hgss-backend:3.0
+    container_name: hgss-main-backend-container
+    env_file:
+      - .env
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      DOCKER_DB_USERNAME: ${DB_USERNAME}
+      DOCKER_DB_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hotel_guest_service_system
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_MAIL_HOST: mailpit
+      SPRING_MAIL_PORT: 1025
+      ALLOWED_ORIGIN: http://localhost:3001
+    ports:
+      - "8081:8080"
+    volumes:
+      - uploads_data:/app/upload-dir
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    image: jerzyk437/hgss-frontend:1.5
+    container_name: hgss-main-frontend-container
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: hotel-main-mailpit-container
+    ports:
+      - "1027:1025"
+      - "8027:8025"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  uploads_data:
